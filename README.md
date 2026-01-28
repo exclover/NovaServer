@@ -38,24 +38,38 @@ Modern, high-performance web server framework for Java with built-in support for
 
 ### Maven
 ```xml
-<dependency>
-    <groupId>com.nova</groupId>
-    <artifactId>nova-framework</artifactId>
-    <version>2.0</version>
-</dependency>
+	<repositories>
+		<repository>
+		    <id>jitpack.io</id>
+		    <url>https://jitpack.io</url>
+		</repository>
+	</repositories>
+	<dependency>
+	    <groupId>com.github.exclover</groupId>
+	    <artifactId>NovaServer</artifactId>
+	    <version>Tag</version>
+	</dependency>
+    
 ```
 
 ### Gradle
 ```gradle
-implementation 'com.nova:nova-framework:2.0'
+repositories {
+    mavenCentral()
+    maven { url = uri("https://jitpack.io") }
+}
+
+dependencies {
+    implementation("com.github.exclover:NovaServer:Tag")
+}
 ```
 
 ### Manual
-```bash
-git clone https://github.com/yourname/nova-framework.git
-cd nova-framework
-javac -d bin src/com/nova/**/*.java
-```
+###```bash
+###git clone https://github.com/yourname/nova-framework.git
+###cd nova-framework
+###javac -d bin src/com/nova/**/*.java
+###```
 
 ## 🚀 Quick Start
 
