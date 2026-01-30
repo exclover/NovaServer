@@ -49,7 +49,7 @@ public class NovaServer {
     private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
     
     private volatile BiConsumer<String, Throwable> logger;
-    private volatile CustomProtocolHandler customProtocolHandler;
+    private final Map<String, CustomProtocolHandler> customProtocolHandlers = new ConcurrentHashMap<>();
     
     // FIX: Use AtomicReference to safely manage shutdown hook
     private final AtomicReference<Thread> shutdownHookRef = new AtomicReference<>(null);
@@ -330,9 +330,65 @@ public class NovaServer {
     
     // ========== PROTOCOL API ==========
     
-    public NovaServer registerProtocol(CustomProtocolHandler handler) {
-        this.customProtocolHandler = handler;
+    
+    // ========== PROTOCOL API ==========
+    
+    /**
+     * Register custom protocol handler with magic bytes
+     * 
+     * @param magicBytes Magic bytes to identify the protocol (e.g., new byte[]{0x4E, 0x4F, 0x56, 0x41} for "NOVA")
+     * @param handler Handler for this protocol
+     * @return this server instance
+     */
+    public NovaServer onCustomProtocol(byte[] magicBytes, CustomProtocolHandler handler) {
+        if (magicBytes == null || magicBytes.length == 0) {
+            throw new IllegalArgumentException("Magic bytes cannot be null or empty");
+        }
+        if (handler == null) {
+            throw new IllegalArgumentException("Handler cannot be null");
+        }
+        
+        String magicHex = bytesToHex(magicBytes);
+        customProtocolHandlers.put(magicHex, handler);
+        log("Registered custom protocol: " + magicHex);
         return this;
+    }
+    
+    /**
+     * Register custom protocol handler with hex string
+     * 
+     * @param magicHex Hex string of magic bytes (e.g., "4E4F5641" for "NOVA")
+     * @param handler Handler for this protocol
+     * @return this server instance
+     */
+    public NovaServer onCustomProtocol(String magicHex, CustomProtocolHandler handler) {
+        if (magicHex == null || magicHex.isEmpty()) {
+            throw new IllegalArgumentException("Magic hex cannot be null or empty");
+        }
+        if (handler == null) {
+            throw new IllegalArgumentException("Handler cannot be null");
+        }
+        
+        customProtocolHandlers.put(magicHex.toUpperCase(), handler);
+        log("Registered custom protocol: " + magicHex);
+        return this;
+    }
+    
+    /**
+     * Legacy method for backward compatibility
+     * @deprecated Use onCustomProtocol(byte[], CustomProtocolHandler) instead
+     */
+    @Deprecated
+    public NovaServer registerProtocol(CustomProtocolHandler handler) {
+        return onCustomProtocol(new byte[]{0x4E, 0x4F, 0x56, 0x41}, handler);
+    }
+    
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder hex = new StringBuilder();
+        for (byte b : bytes) {
+            hex.append(String.format("%02X", b & 0xFF));
+        }
+        return hex.toString();
     }
     
     // ========== CONFIGURATION API ==========
@@ -508,12 +564,12 @@ public class NovaServer {
     }
     
     private void handleWithProtocolDetection(Socket client) throws IOException {
-        ProtocolDetector.Result result = ProtocolDetector.detect(client);
+        ProtocolDetector.Result result = ProtocolDetector.detect(client, customProtocolHandlers);
         
         switch (result.protocol()) {
             case HTTP -> handleHTTP(result.socket());
             case WEBSOCKET -> handleWebSocket(result.socket());
-            case CUSTOM -> handleCustomProtocol(result.socket());
+            case CUSTOM -> handleCustomProtocol(result.socket(), result.magicKey());
             case UNKNOWN -> {
                 log("Unknown protocol detected from " + client.getInetAddress(), null);
                 closeSocket(result.socket());
@@ -583,17 +639,20 @@ public class NovaServer {
         closeSocket(client);
     }
     
-    private void handleCustomProtocol(Socket client) {
-        if (customProtocolHandler == null) {
-            log("Custom protocol detected but no handler registered", null);
+    
+    private void handleCustomProtocol(Socket client, String magicKey) {
+        if (magicKey == null || !customProtocolHandlers.containsKey(magicKey)) {
+            log("Custom protocol detected but no handler registered for magic: " + magicKey, null);
             closeSocket(client);
             return;
         }
         
+        CustomProtocolHandler handler = customProtocolHandlers.get(magicKey);
+        
         try {
-            customProtocolHandler.handle(client);
+            handler.handle(client);
         } catch (Exception e) {
-            log("Custom protocol error", e);
+            log("Custom protocol error for magic " + magicKey, e);
         }
     }
     
