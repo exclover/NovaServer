@@ -3,7 +3,7 @@ plugins {
     java
 }
 
-group = "com.nova"
+group = "com.github.exclover"
 version = "2.1-SNAPSHOT"
 
 java {
@@ -23,4 +23,13 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
 }
