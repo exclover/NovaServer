@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.nova"
-version = "2.0-SNAPSHOT"
+version = "2.1-SNAPSHOT"
 
 java {
     toolchain {
