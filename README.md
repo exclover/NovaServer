@@ -648,22 +648,110 @@ Nova uses a sophisticated threading model:
 ### Custom Protocol Handlers
 
 ```java
-server.onCustomProtocol(socket -> {
-    // Handle custom protocol
-    InputStream in = socket.getInputStream();
-    OutputStream out = socket.getOutputStream();
-    
-    // Read custom protocol data
-    byte[] magic = new byte[4];
-    in.read(magic);
-    
-    if (Arrays.equals(magic, new byte[]{0x4E, 0x4F, 0x56, 0x41})) {
-        // Handle NOVA protocol
-        out.write("NOVA OK\n".getBytes());
-    }
-    
-    socket.close();
-});
+
+        // ========== EXAMPLE 1: Using byte array ==========
+        // Register "NOVA" protocol (0x4E 0x4F 0x56 0x41)
+        server.onCustomProtocol(new byte[]{0x4E, 0x4F, 0x56, 0x41}, socket -> {
+            System.out.println("NOVA protocol detected!");
+            
+            InputStream in = socket.getInputStream();
+            OutputStream out = socket.getOutputStream();
+            
+            // Read magic bytes (already consumed by detector, need to skip or reread)
+            byte[] magic = new byte[4];
+            in.read(magic);
+            
+            // Read rest of the data
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            String data = reader.readLine();
+            
+            System.out.println("Received: " + data);
+            
+            // Send response
+            out.write("NOVA OK\n".getBytes());
+            out.flush();
+            
+            socket.close();
+        });
+        
+        // ========== EXAMPLE 2: Using hex string ==========
+        // Register "CHAT" protocol (0x43 0x48 0x41 0x54)
+        server.onCustomProtocol("43484154", socket -> {
+            System.out.println("CHAT protocol detected!");
+            
+            InputStream in = socket.getInputStream();
+            OutputStream out = socket.getOutputStream();
+            
+            // Skip magic bytes
+            in.skip(4);
+            
+            // Handle chat protocol
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            String message = reader.readLine();
+            
+            System.out.println("Chat message: " + message);
+            
+            String response = "CHAT RECEIVED: " + message + "\n";
+            out.write(response.getBytes());
+            out.flush();
+            
+            socket.close();
+        });
+        
+        // ========== EXAMPLE 3: Binary protocol ==========
+        // Register custom binary protocol with magic bytes 0xDE 0xAD 0xBE 0xEF
+        server.onCustomProtocol(new byte[]{(byte)0xDE, (byte)0xAD, (byte)0xBE, (byte)0xEF}, socket -> {
+            System.out.println("Binary protocol detected!");
+            
+            DataInputStream in = new DataInputStream(socket.getInputStream());
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+            
+            try {
+                // Skip magic bytes
+                in.skipBytes(4);
+                
+                // Read binary data
+                int length = in.readInt();
+                byte[] data = new byte[length];
+                in.readFully(data);
+                
+                System.out.println("Received " + length + " bytes");
+                
+                // Send acknowledgment
+                out.writeInt(0x00); // OK status
+                out.flush();
+                
+            } finally {
+                socket.close();
+            }
+        });
+        
+        // ========== EXAMPLE 4: Multiple protocols ==========
+        // Register "AUTH" protocol
+        server.onCustomProtocol("41555448", socket -> {
+            System.out.println("AUTH protocol detected!");
+            
+            InputStream in = socket.getInputStream();
+            OutputStream out = socket.getOutputStream();
+            
+            in.skip(4); // Skip magic
+            
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            String credentials = reader.readLine();
+            
+            // Validate credentials
+            boolean isValid = validateCredentials(credentials);
+            
+            if (isValid) {
+                out.write("AUTH OK\n".getBytes());
+            } else {
+                out.write("AUTH FAILED\n".getBytes());
+            }
+            out.flush();
+            
+            socket.close();
+        });
+        
 ```
 
 ### Virtual Threads (Java 21+)
