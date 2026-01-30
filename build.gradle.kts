@@ -28,8 +28,8 @@ tasks.test {
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
-            from components.java
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
         }
     }
 }
