@@ -656,10 +656,7 @@ Nova uses a sophisticated threading model:
             
             InputStream in = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
-            
-            // Read magic bytes (already consumed by detector, need to skip or reread)
-            byte[] magic = new byte[4];
-            in.read(magic);
+
             
             // Read rest of the data
             BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -681,9 +678,6 @@ Nova uses a sophisticated threading model:
             
             InputStream in = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
-            
-            // Skip magic bytes
-            in.skip(4);
             
             // Handle chat protocol
             BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -707,8 +701,6 @@ Nova uses a sophisticated threading model:
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
             
             try {
-                // Skip magic bytes
-                in.skipBytes(4);
                 
                 // Read binary data
                 int length = in.readInt();
@@ -734,7 +726,6 @@ Nova uses a sophisticated threading model:
             InputStream in = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
             
-            in.skip(4); // Skip magic
             
             BufferedReader reader = new BufferedReader(new InputStreamReader(in));
             String credentials = reader.readLine();
