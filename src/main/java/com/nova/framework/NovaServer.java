@@ -641,18 +641,24 @@ public class NovaServer {
     
     
     private void handleCustomProtocol(Socket client, String magicKey) {
-        if (magicKey == null || !customProtocolHandlers.containsKey(magicKey)) {
-            log("Custom protocol detected but no handler registered for magic: " + magicKey, null);
+        CustomProtocolHandler handler = customProtocolHandlers.get(magicKey);
+        if (handler == null) {
+            log("Handler yok: " + magicKey, null);
             closeSocket(client);
             return;
         }
-        
-        CustomProtocolHandler handler = customProtocolHandlers.get(magicKey);
-        
+
         try {
+            byte[] magicBytes = magicKey.getBytes(StandardCharsets.UTF_8);
+            InputStream in = client.getInputStream();
+
+            byte[] read = new byte[magicBytes.length];
+            in.read(read);
+
             handler.handle(client);
         } catch (Exception e) {
-            log("Custom protocol error for magic " + magicKey, e);
+            log("Custom protocol hata: " + magicKey, e);
+            closeSocket(client);
         }
     }
     
@@ -974,3 +980,4 @@ public class NovaServer {
         }
     }
 }
+
