@@ -390,6 +390,19 @@ public class NovaServer {
         }
         return hex.toString();
     }
+
+    private byte[] hexToBytes(String hex) {
+        hex = hex.replace("0x", "").replaceAll("\\s+", "");
+        int len = hex.length();
+
+        byte[] out = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            out[i / 2] = (byte) Integer.parseInt(hex.substring(i, i + 2), 16);
+        }
+        return out;
+    }
+
+
     
     // ========== CONFIGURATION API ==========
     
@@ -639,7 +652,7 @@ public class NovaServer {
         closeSocket(client);
     }
     
-    
+        
     private void handleCustomProtocol(Socket client, String magicKey) {
         CustomProtocolHandler handler = customProtocolHandlers.get(magicKey);
         if (handler == null) {
@@ -649,7 +662,7 @@ public class NovaServer {
         }
 
         try {
-            byte[] magicBytes = magicKey.getBytes(StandardCharsets.UTF_8);
+            byte[] magicBytes = hexToBytes(magicKey);
             InputStream in = client.getInputStream();
 
             byte[] read = new byte[magicBytes.length];
@@ -661,6 +674,7 @@ public class NovaServer {
             closeSocket(client);
         }
     }
+
     
     // ========== INTERNAL: UTILITIES ==========
     
@@ -980,4 +994,3 @@ public class NovaServer {
         }
     }
 }
-
