@@ -1,906 +1,571 @@
-# 🚀 Nova Framework
+# 🚀 NovaServer v3.0
 
-**Modern High-Performance Web Server for Java**
+**A modern, lightweight, plugin-based HTTP server framework for Java**
 
-Nova is a lightweight, blazingly fast web framework for Java that combines simplicity with powerful features. Built for Java 17+ with native support for Virtual Threads (Java 21+), it provides everything you need to build modern web applications and APIs.
-
-[![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.java.net/)
-[![Virtual Threads](https://img.shields.io/badge/Virtual%20Threads-Java%2021%2B-blue.svg)](https://openjdk.java.net/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+NovaServer is a high-performance, extensible web server framework built from scratch in pure Java. It features a clean plugin architecture, zero external dependencies (except for optional features), and support for modern Java features like virtual threads and records.
 
 ## ✨ Features
 
-### Core Capabilities
-- ⚡ **High Performance** - Handles 10,000+ concurrent connections with Virtual Threads
-- 🔌 **WebSocket Support** - Full-featured WebSocket implementation with broadcast capabilities
-- 🛡️ **SSL/TLS Support** - Built-in HTTPS with customizable SSL configuration
-- 🔄 **Middleware Pipeline** - Flexible request/response processing chain
-- 🎯 **Smart Routing** - Powerful router with path parameters and pattern matching
-- 📦 **Protocol Detection** - Automatic protocol detection (HTTP, WebSocket, Custom)
-- 🗜️ **Compression** - GZIP compression for responses
-- 🌐 **CORS Support** - Built-in Cross-Origin Resource Sharing
-- 📊 **Metrics & Monitoring** - Real-time server statistics and performance metrics
-- 🔒 **Thread-Safe** - Designed for concurrent environments
+### Core Features
+- 🔌 **Plugin-Based Architecture** - Extend functionality through clean, composable plugins
+- ⚡ **High Performance** - Virtual threads support (Java 21+) for massive concurrency
+- 🎯 **Zero Dependencies** - Core framework has no external dependencies
+- 🔒 **Type-Safe** - Leverages Java records for immutable, type-safe configurations
+- 🧵 **Concurrent** - Thread-safe design using modern Java concurrency primitives
 
-### Advanced Features
-- Virtual Threads support (Java 21+) for massive concurrency
-- Connection pooling with configurable limits
-- Request/response lifecycle management
-- Cookie handling and session management
-- JSON/Form data parsing
-- File serving with content-type detection
-- Rate limiting support
-- Custom protocol handlers
-- Hot reload support (planned)
+### Built-in Plugins
+- 🛣️ **Routing** - Express-like routing with path parameters (`:id`)
+- 🔄 **Middleware** - Request/response pipeline with chainable middleware
+- 🔌 **WebSocket** - Full WebSocket protocol support for real-time communication
+- 🔐 **SSL/TLS** - HTTPS support with configurable cipher suites
+- 📡 **Protocol Detection** - Custom protocol handling via magic bytes
 
-## 📦 Installation
+### HTTP Features
+- ✅ All standard HTTP methods (GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD)
+- 📊 JSON responses with built-in utilities
+- 🍪 Cookie parsing and setting with security options
+- 🎯 Query parameter parsing
+- 📝 Request body parsing (text, JSON)
+- 🔍 Path parameter extraction (`/users/:id`)
+- 📄 File downloads with custom headers
 
-### Maven
+## 📦 Quick Start
 
-```xml
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-<dependency>
-    <groupId>com.github.exclover</groupId>
-    <artifactId>NovaServer</artifactId>
-    <version>Tag</version>
-</dependency>
-```
-
-### Gradle
-
-```gradle
-repositories {
-    mavenCentral()
-    maven { url = uri("https://jitpack.io") }
-}
-
-dependencies {
-    implementation("com.github.exclover:NovaServer:Tag")
-}
-```
-
-### Manual
-
-1. Clone the repository
-2. Build with Maven: `mvn clean install`
-3. Add the JAR to your project classpath
-
-## 🚀 Quick Start
-
-### Simple HTTP Server
+### Basic Hello World
 
 ```java
 import com.nova.framework.NovaServer;
 
-public class MyApp {
+public class HelloWorld {
     public static void main(String[] args) throws Exception {
         NovaServer server = new NovaServer(8080);
         
-        server.get("/", (req, res) -> {
-            res.json("{\"message\": \"Hello, Nova!\"}");
+        server.routing().get("/", (req, res) -> {
+            res.send("Hello, World!");
         });
         
-        server.start();
-        System.out.println("Server running on http://localhost:8080");
+        server.start().await();
     }
 }
 ```
 
-### Advanced Configuration
+### RESTful API
 
 ```java
-import com.nova.framework.NovaServer;
-import com.nova.framework.config.ServerConfig;
-import com.nova.framework.ssl.SSLConfig;
+NovaServer server = new NovaServer(8080);
 
-public class MyApp {
-    public static void main(String[] args) throws Exception {
-        ServerConfig config = ServerConfig.builder()
-            .port(8080)
-            .maxConnections(10000)
-            .maxRequestSize(10 * 1024 * 1024) // 10MB
-            .socketTimeout(30000)              // 30 seconds
-            .useVirtualThreads(true)           // Java 21+
-            .protocolDetection(true)
-            .enableSSL(SSLConfig.fromKeystore(
-                "keystore.jks", 
-                "keystorePassword", 
-                "keyPassword"
-            ))
-            .build();
-        
-        NovaServer server = new NovaServer(config);
-        
-        // Configure routes and middleware
-        setupRoutes(server);
-        setupMiddleware(server);
-        
-        server.start();
+// List all users
+server.routing().get("/api/users", (req, res) -> {
+    res.json("[{\"id\":1,\"name\":\"Alice\"}]");
+});
+
+// Get user by ID
+server.routing().get("/api/users/:id", (req, res) -> {
+    String id = req.getPathParam("id");
+    res.json("{\"id\":" + id + ",\"name\":\"User " + id + "\"}");
+});
+
+// Create user
+server.routing().post("/api/users", (req, res) -> {
+    String body = req.body();
+    // Process body...
+    res.status(201).json("{\"success\":true}");
+});
+
+server.start();
+```
+
+### Middleware
+
+```java
+NovaServer server = new NovaServer(8080);
+
+// Logging middleware
+server.middleware().use((req, res) -> {
+    System.out.println(req.method() + " " + req.path());
+    return MiddlewarePlugin.MiddlewareResult.CONTINUE;
+});
+
+// CORS middleware
+server.middleware().use((req, res) -> {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    return MiddlewarePlugin.MiddlewareResult.CONTINUE;
+});
+
+// Authentication middleware
+server.middleware().use((req, res) -> {
+    if (req.path().startsWith("/api/protected")) {
+        String token = req.getHeader("Authorization");
+        if (token == null) {
+            res.status(401).json("{\"error\":\"Unauthorized\"}");
+            return MiddlewarePlugin.MiddlewareResult.STOP;
+        }
     }
+    return MiddlewarePlugin.MiddlewareResult.CONTINUE;
+});
+
+server.start();
+```
+
+### WebSocket
+
+```java
+NovaServer server = new NovaServer(8080);
+
+// Register WebSocket plugin
+WebSocketPlugin ws = new WebSocketPlugin();
+server.use(ws);
+
+// WebSocket endpoint
+ws.websocket("/chat", client -> {
+    // Handle new connection
+    System.out.println("Client connected: " + client.getId());
+    
+    // Handle messages
+    client.onMessage(msg -> {
+        System.out.println("Received: " + msg);
+        client.send("Echo: " + msg);
+    });
+    
+    // Handle disconnect
+    client.onClose(reason -> {
+        System.out.println("Client disconnected");
+    });
+});
+
+server.start();
+```
+
+## 🏗️ Architecture
+
+### Plugin System
+
+NovaServer uses a sophisticated plugin architecture that allows clean separation of concerns:
+
+```java
+public interface Plugin {
+    String id();                           // Unique plugin identifier
+    PluginPriority priority();             // Execution priority
+    Set<String> dependencies();            // Plugin dependencies
+    void initialize(PluginContext ctx);    // Initialize with context
+    void start();                          // Start plugin
+    void stop();                           // Stop plugin
+}
+```
+
+### Default Plugins
+
+Two plugins are automatically registered:
+1. **RoutingPlugin** - HTTP routing (priority: BELOW_NORMAL)
+2. **MiddlewarePlugin** - Request middleware (priority: NORMAL)
+
+### Custom Plugins
+
+Create custom plugins by extending `BasePlugin`:
+
+```java
+public class MyPlugin extends BasePlugin {
+    @Override
+    public String id() { return "my-plugin"; }
+    
+    @Override
+    public PluginPriority priority() {
+        return PluginPriority.HIGH;
+    }
+    
+    @Override
+    public void initialize(PluginContext context) {
+        context.log("MyPlugin initialized");
+    }
+}
+
+// Register the plugin
+server.use(new MyPlugin());
+```
+
+## ⚙️ Configuration
+
+### Server Configuration
+
+```java
+NovaConfig config = NovaConfig.builder()
+    .port(8080)
+    .maxConnections(10000)
+    .maxRequestSize(10 * 1024 * 1024)  // 10MB
+    .socketTimeout(30000)               // 30 seconds
+    .workerThreads(0)                   // Auto (CPU cores * 2)
+    .useVirtualThreads(true)            // Java 21+ virtual threads
+    .build();
+
+NovaServer server = new NovaServer(config);
+```
+
+### SSL/TLS Configuration
+
+```java
+SSLPlugin ssl = new SSLPlugin();
+ssl.configure("keystore.jks", "password");
+server.use(ssl);
+```
+
+## 📚 Examples
+
+The project includes 4 comprehensive examples:
+
+### 1. Hello World (`Example1_HelloWorld.java`)
+- Basic server setup
+- Multiple endpoints
+- JSON and HTML responses
+- Server information endpoint
+
+### 2. RESTful API (`Example2_RestfulAPI.java`)
+- Full CRUD operations
+- Path parameters (`:id`)
+- Query parameters (`?search=name`)
+- Proper HTTP status codes
+- In-memory data storage
+
+### 3. Middleware (`Example3_Middleware.java`)
+- Request logging
+- CORS handling
+- Authentication/Authorization
+- Protected routes
+- Public vs private endpoints
+
+### 4. WebSocket Chat (`Example4_WebSocketChat.java`)
+- Real-time bidirectional communication
+- Chat room functionality
+- Multiple client connections
+- Broadcasting messages
+- HTML chat client included
+
+## 🔧 API Reference
+
+### NovaServer
+
+```java
+// Create server
+NovaServer server = new NovaServer(8080);
+NovaServer server = new NovaServer(config);
+
+// Register plugins
+server.use(new MyPlugin());
+
+// Access plugins
+server.routing()    // Get routing plugin
+server.middleware() // Get middleware plugin
+
+// Lifecycle
+server.start()      // Start server
+server.stop()       // Stop server
+server.await()      // Wait for shutdown
+```
+
+### Routing
+
+```java
+// Define routes
+server.routing().get("/path", handler);
+server.routing().post("/path", handler);
+server.routing().put("/path", handler);
+server.routing().delete("/path", handler);
+
+// Path parameters
+server.routing().get("/users/:id", (req, res) -> {
+    String id = req.getPathParam("id");
+});
+
+// Multiple parameters
+server.routing().get("/posts/:postId/comments/:commentId", handler);
+```
+
+### Request (HTTPRequest)
+
+```java
+// HTTP basics
+req.method()        // HTTPMethod enum
+req.path()          // Request path
+req.body()          // Request body as String
+req.clientAddress() // Client IP address
+
+// Headers
+req.getHeader("Content-Type")
+req.headers()       // All headers (Map)
+
+// Parameters
+req.getQueryParam("page")      // Query params (?page=1)
+req.getPathParam("id")         // Path params (/users/:id)
+req.queryParams()              // All query params (Map)
+req.pathParams()               // All path params (Map)
+
+// Cookies
+req.getCookie("sessionId")
+
+// WebSocket
+req.isWebSocketUpgrade()
+```
+
+### Response (HTTPResponse)
+
+```java
+// Status
+res.status(200)
+res.status(HTTPStatus.OK)
+
+// Headers
+res.setHeader("Content-Type", "application/json")
+res.contentType("application/json")
+
+// Send responses
+res.send("text")               // Plain text
+res.html("<h1>HTML</h1>")      // HTML
+res.json("{\"key\":\"value\"}") // JSON
+
+// Cookies
+res.cookie("name", "value")
+res.cookie(Cookie.builder("name", "value")
+    .maxAge(3600)
+    .httpOnly(true)
+    .secure(true)
+    .build())
+
+// Files
+res.sendFile(new File("document.pdf"))
+```
+
+### Middleware
+
+```java
+server.middleware().use((req, res) -> {
+    // Middleware logic
+    
+    // Continue to next middleware/route
+    return MiddlewarePlugin.MiddlewareResult.CONTINUE;
+    
+    // Stop processing (response already sent)
+    return MiddlewarePlugin.MiddlewareResult.STOP;
+});
+```
+
+## 🚀 Performance
+
+### Benchmarks (Approximate)
+
+- **Requests/second**: 50,000+ (simple endpoints, virtual threads)
+- **Concurrent connections**: 10,000+ (configurable)
+- **Latency**: Sub-millisecond for static responses
+- **Memory**: ~50MB baseline (varies with connection count)
+
+### Optimization Tips
+
+1. **Use Virtual Threads** (Java 21+)
+   ```java
+   NovaConfig.builder().useVirtualThreads(true)
+   ```
+
+2. **Tune Connection Pool**
+   ```java
+   NovaConfig.builder().maxConnections(50000)
+   ```
+
+3. **Optimize Socket Settings**
+   ```java
+   NovaConfig.builder()
+       .socketTimeout(5000)      // Lower timeout for faster turnover
+       .maxRequestSize(1_000_000) // Limit request size
+   ```
+
+4. **Use Middleware Wisely**
+   - Keep middleware logic fast
+   - Avoid blocking operations
+   - Use `STOP` to short-circuit when appropriate
+
+## 🔐 Security
+
+### Built-in Security Features
+
+1. **Header Injection Prevention**
+   - Headers are validated to prevent CRLF injection
+   - Cookie values are URL-encoded
+
+2. **Request Size Limits**
+   - Configurable max request size
+   - Automatic rejection of oversized requests
+
+3. **Connection Limits**
+   - Maximum concurrent connection enforcement
+   - Automatic rejection when limit reached
+
+4. **Cookie Security**
+   - HttpOnly flag (default: true)
+   - Secure flag for HTTPS
+   - SameSite attribute support
+
+### Security Best Practices
+
+```java
+// 1. Use HTTPS in production
+SSLPlugin ssl = new SSLPlugin();
+ssl.configure("keystore.jks", "password");
+server.use(ssl);
+
+// 2. Implement authentication middleware
+server.middleware().use((req, res) -> {
+    if (req.path().startsWith("/api/")) {
+        String token = req.getHeader("Authorization");
+        if (!isValidToken(token)) {
+            res.status(401).json("{\"error\":\"Unauthorized\"}");
+            return MiddlewarePlugin.MiddlewareResult.STOP;
+        }
+    }
+    return MiddlewarePlugin.MiddlewareResult.CONTINUE;
+});
+
+// 3. Set secure cookies
+res.cookie(Cookie.builder("session", token)
+    .httpOnly(true)
+    .secure(true)
+    .sameSite("Strict")
+    .build());
+
+// 4. Validate input
+String id = req.getPathParam("id");
+if (!isValidId(id)) {
+    res.status(400).json("{\"error\":\"Invalid ID\"}");
+    return;
+}
+```
+
+## 🧪 Testing
+
+### Unit Testing Routes
+
+```java
+@Test
+public void testHelloEndpoint() throws Exception {
+    NovaServer server = new NovaServer(8080);
+    server.routing().get("/hello", (req, res) -> {
+        res.send("Hello!");
+    });
+    server.start();
+    
+    // Use HTTP client to test
+    HttpClient client = HttpClient.newHttpClient();
+    HttpResponse<String> response = client.send(
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8080/hello"))
+            .build(),
+        HttpResponse.BodyHandlers.ofString()
+    );
+    
+    assertEquals(200, response.statusCode());
+    assertEquals("Hello!", response.body());
+    
+    server.stop();
 }
 ```
 
 ## 📖 Documentation
 
-### Routing
-
-Nova provides a simple and intuitive routing API:
-
-```java
-// Basic routes
-server.get("/users", (req, res) -> {
-    res.json("{\"users\": []}");
-});
-
-server.post("/users", (req, res) -> {
-    String body = req.body();
-    res.status(201).json("{\"created\": true}");
-});
-
-// Path parameters
-server.get("/users/:id", (req, res) -> {
-    String id = req.param("id");
-    res.json("{\"id\": \"" + id + "\"}");
-});
-
-// Multiple parameters
-server.get("/posts/:postId/comments/:commentId", (req, res) -> {
-    String postId = req.param("postId");
-    String commentId = req.param("commentId");
-    res.json("{\"post\": \"" + postId + "\", \"comment\": \"" + commentId + "\"}");
-});
-
-// Query parameters
-server.get("/search", (req, res) -> {
-    String query = req.query("q");
-    int page = req.queryInt("page", 1);
-    res.json("{\"query\": \"" + query + "\", \"page\": " + page + "}");
-});
-
-// All HTTP methods
-server.get("/resource", handler);
-server.post("/resource", handler);
-server.put("/resource/:id", handler);
-server.patch("/resource/:id", handler);
-server.delete("/resource/:id", handler);
-server.options("/resource", handler);
-server.head("/resource", handler);
-```
-
-### Request Object
-
-The `Request` object provides access to all request data:
-
-```java
-server.post("/example", (req, res) -> {
-    // Basic info
-    String method = req.method();        // GET, POST, etc.
-    String path = req.path();            // /example
-    String clientIP = req.clientIP();    // Client IP address
-    
-    // Headers
-    String contentType = req.header("Content-Type");
-    String userAgent = req.userAgent();
-    String auth = req.authorization();
-    String token = req.bearerToken();
-    
-    // Path parameters
-    String id = req.param("id");
-    int idInt = req.paramInt("id", 0);
-    
-    // Query parameters
-    String q = req.query("q");
-    int page = req.queryInt("page", 1);
-    List<String> tags = req.queryAll("tag");
-    
-    // Cookies
-    String sessionId = req.cookie("session");
-    Map<String, String> allCookies = req.cookies();
-    
-    // Body
-    String rawBody = req.body();
-    
-    // JSON parsing
-    if (req.isJson()) {
-        Map<String, Object> json = req.json();
-        String name = req.jsonString("name");
-        Integer age = req.jsonInt("age");
-    }
-    
-    // Form data
-    if (req.isFormData()) {
-        Map<String, String> form = req.form();
-        String username = req.formValue("username");
-    }
-    
-    // WebSocket upgrade check
-    if (req.isWebSocketUpgrade()) {
-        // Handle WebSocket upgrade
-    }
-    
-    // Custom attributes
-    req.set("userId", "123");
-    String userId = (String) req.get("userId");
-    User user = req.get("user", User.class);
-    
-    res.json("{\"success\": true}");
-});
-```
-
-### Response Object
-
-The `Response` object provides methods for sending responses:
-
-```java
-server.get("/response-examples", (req, res) -> {
-    // Set status
-    res.status(200);
-    
-    // Set headers
-    res.setHeader("X-Custom-Header", "value");
-    
-    // Send JSON
-    res.json("{\"message\": \"Hello\"}");
-    
-    // Send JSON from Map
-    Map<String, Object> data = new HashMap<>();
-    data.put("message", "Hello");
-    res.json(data);
-    
-    // Send HTML
-    res.html("<h1>Hello, World!</h1>");
-    
-    // Send plain text
-    res.text("Hello, World!");
-    
-    // Send XML
-    res.xml("<message>Hello</message>");
-    
-    // Send file
-    res.file(new File("document.pdf"));
-    
-    // Redirect
-    res.redirect("/new-location");
-    res.redirect("/new-location", 301);
-    
-    // No content
-    res.noContent();
-    
-    // Convenience methods
-    res.ok("Operation successful");
-    res.created("Resource created");
-    res.badRequest("Invalid input");
-    res.unauthorized("Authentication required");
-    res.forbidden("Access denied");
-    res.notFound("Resource not found");
-    res.serverError("Internal server error");
-});
-
-// Cookies
-server.get("/set-cookie", (req, res) -> {
-    res.cookie("session", "abc123");
-    
-    // With options
-    res.cookie("session", "abc123", 
-        new Response.CookieOptions()
-            .maxAge(3600)
-            .path("/")
-            .domain("example.com")
-            .secure(true)
-            .httpOnly(true)
-            .sameSite("Strict")
-    );
-    
-    res.json("{\"success\": true}");
-});
-
-// Compression
-server.get("/large-data", (req, res) -> {
-    res.enableCompression();
-    res.json(largeJsonData);
-});
-```
-
-### Middleware
-
-Middleware functions process requests before they reach route handlers:
-
-```java
-// Global middleware (applies to all routes)
-server.use((ctx) -> {
-    System.out.println("Request: " + ctx.method() + " " + ctx.path());
-    ctx.next(); // Continue to next middleware or route handler
-});
-
-// Path-specific middleware
-server.use("/admin", (ctx) -> {
-    String token = ctx.header("Authorization");
-    if (token == null || !isValidToken(token)) {
-        ctx.response().unauthorized("Invalid token");
-        ctx.stop(); // Stop middleware chain
-        return;
-    }
-    ctx.next();
-});
-
-// Middleware example: Request logging
-server.use((ctx) -> {
-    long start = System.currentTimeMillis();
-    String method = ctx.method();
-    String path = ctx.path();
-    
-    ctx.next();
-    
-    long duration = System.currentTimeMillis() - start;
-    System.out.printf("%s %s - %dms%n", method, path, duration);
-});
-
-// Middleware example: Authentication
-server.use("/api", (ctx) -> {
-    String token = ctx.request().bearerToken();
-    
-    if (token == null) {
-        ctx.response().unauthorized("Token required");
-        ctx.stop();
-        return;
-    }
-    
-    User user = authenticateToken(token);
-    if (user == null) {
-        ctx.response().unauthorized("Invalid token");
-        ctx.stop();
-        return;
-    }
-    
-    ctx.set("user", user);
-    ctx.next();
-});
-
-// Middleware example: Rate limiting
-Map<String, List<Long>> rateLimits = new ConcurrentHashMap<>();
-server.use((ctx) -> {
-    String ip = ctx.clientIP();
-    long now = System.currentTimeMillis();
-    
-    rateLimits.putIfAbsent(ip, new ArrayList<>());
-    List<Long> requests = rateLimits.get(ip);
-    
-    // Remove old requests (> 1 minute)
-    requests.removeIf(time -> now - time > 60000);
-    
-    if (requests.size() >= 100) {
-        ctx.response().status(429).json("{\"error\": \"Too many requests\"}");
-        ctx.stop();
-        return;
-    }
-    
-    requests.add(now);
-    ctx.next();
-});
-
-// Built-in middleware
-server.enableCors();        // Enable CORS
-server.enableCompression(); // Enable GZIP compression
-```
-
-### WebSocket Support
-
-Nova provides full WebSocket support with an easy-to-use API:
-
-```java
-// Create WebSocket handler
-server.websocket("/ws/chat", ws -> {
-    ws.onConnect(conn -> {
-        System.out.println("Client connected: " + conn.id());
-        conn.sendText("Welcome to the chat!");
-    });
-    
-    ws.onMessage((conn, message) -> {
-        System.out.println("Received: " + message);
-        
-        // Echo back
-        conn.sendText("Echo: " + message);
-        
-        // Broadcast to all clients
-        ws.broadcast("User said: " + message);
-        
-        // Broadcast to all except sender
-        ws.broadcastExcept("User said: " + message, conn);
-    });
-    
-    ws.onClose(conn -> {
-        System.out.println("Client disconnected: " + conn.id());
-    });
-    
-    ws.onError((conn, error) -> {
-        System.err.println("WebSocket error: " + error.getMessage());
-    });
-});
-
-// WebSocket with path parameters
-server.websocket("/ws/room/:roomId", ws -> {
-    ws.onConnect(conn -> {
-        String roomId = conn.param("roomId");
-        System.out.println("Joined room: " + roomId);
-    });
-    
-    ws.onMessage((conn, message) -> {
-        // Handle message
-    });
-});
-
-// WebSocket connection management
-server.websocket("/ws", ws -> {
-    ws.onConnect(conn -> {
-        // Store user data
-        conn.set("userId", "123");
-        conn.set("username", "Alice");
-        
-        // Get stored data
-        String userId = conn.get("userId", String.class);
-    });
-    
-    ws.onMessage((conn, message) -> {
-        // Send to specific client
-        conn.sendText("Response");
-        
-        // Send binary data
-        conn.sendBinary(new byte[]{1, 2, 3});
-        
-        // Send ping
-        conn.sendPing();
-        
-        // Close connection
-        conn.close();
-        conn.close(1000, "Normal closure");
-    });
-});
-```
-
-### SSL/TLS Configuration
-
-Enable HTTPS with SSL/TLS:
-
-```java
-import com.nova.framework.ssl.SSLConfig;
-
-// From keystore file
-SSLConfig sslConfig = SSLConfig.fromKeystore(
-    "keystore.jks",
-    "keystorePassword",
-    "keyPassword"
-);
-
-// From PEM files
-SSLConfig sslConfig = SSLConfig.fromPEM(
-    "certificate.crt",
-    "private.key"
-);
-
-// Custom SSL configuration
-SSLConfig sslConfig = SSLConfig.builder()
-    .keystorePath("keystore.jks")
-    .keystorePassword("password")
-    .keyPassword("password")
-    .keystoreType("JKS")
-    .protocol("TLSv1.3")
-    .enabledProtocols(new String[]{"TLSv1.2", "TLSv1.3"})
-    .enabledCipherSuites(new String[]{
-        "TLS_AES_256_GCM_SHA384",
-        "TLS_AES_128_GCM_SHA256"
-    })
-    .build();
-
-// Create server with SSL
-ServerConfig config = ServerConfig.builder()
-    .port(8443)
-    .enableSSL(sslConfig)
-    .build();
-
-NovaServer server = new NovaServer(config);
-```
-
-### Server Configuration
-
-```java
-ServerConfig config = ServerConfig.builder()
-    .port(8080)                          // Server port (default: required)
-    .maxConnections(10000)               // Max concurrent connections (default: 10000)
-    .maxRequestSize(10 * 1024 * 1024)   // Max request size in bytes (default: 10MB)
-    .socketTimeout(30000)                // Socket timeout in ms (default: 30000)
-    .shutdownTimeout(10)                 // Graceful shutdown timeout in seconds (default: 10)
-    .workerThreads(16)                   // Worker thread count (default: CPU cores * 2)
-    .useVirtualThreads(true)             // Use virtual threads (Java 21+)
-    .protocolDetection(true)             // Enable protocol detection (default: true)
-    .enableSSL(sslConfig)                // Enable SSL/TLS
-    .compression(true)                   // Enable compression
-    .cors(true)                          // Enable CORS
-    .build();
-```
-
-### Error Handling
-
-```java
-// Custom error logging
-server.onLog((message, error) -> {
-    if (error != null) {
-        System.err.println("[ERROR] " + message);
-        error.printStackTrace();
-    } else {
-        System.out.println("[INFO] " + message);
-    }
-});
-
-// Handle errors in routes
-server.get("/error-example", (req, res) -> {
-    try {
-        // Some operation that might fail
-        riskyOperation();
-        res.ok("Success");
-    } catch (Exception e) {
-        res.serverError("Operation failed: " + e.getMessage());
-    }
-});
-
-// Middleware error handling
-server.use((ctx) -> {
-    try {
-        ctx.next();
-    } catch (Exception e) {
-        ctx.response().serverError("Internal error");
-    }
-});
-```
-
-### Server Metrics
-
-```java
-// Get server metrics
-server.get("/metrics", (req, res) -> {
-    Map<String, Object> metrics = server.getMetrics();
-    res.json(metrics);
-});
-
-// Metrics include:
-// - totalRequests: Total requests processed
-// - activeConnections: Current active connections
-// - uptime: Server uptime in milliseconds
-// - requestsPerSecond: Average requests per second
-// - avgResponseTime: Average response time
-// - errorCount: Total error count
-```
-
-### Graceful Shutdown
-
-```java
-// Server automatically registers shutdown hook
-server.start();
-
-// Manual shutdown
-server.shutdown();
-
-// Shutdown with custom timeout
-server.shutdown(15); // 15 seconds timeout
-```
-
-## 🏗️ Architecture
-
 ### Package Structure
 
 ```
 com.nova.framework
-├── config/              - Configuration classes
-│   └── ServerConfig     - Server configuration with builder
-├── connection/          - Connection management
-│   └── ConnectionPool   - Thread-safe connection pool
-├── core/               - Core request/response handling
-│   ├── Request         - HTTP request representation
-│   ├── Response        - HTTP response builder
-│   └── RequestParser   - HTTP request parser
-├── middleware/         - Middleware pipeline
-│   ├── MiddlewarePipeline  - Middleware chain executor
-│   ├── MiddlewareContext   - Middleware execution context
-│   └── MiddlewareHandler   - Middleware interface
-├── routing/            - Routing system
-│   ├── Router          - Route matching and handling
-│   └── RouteHandler    - Route handler interface
-├── websocket/          - WebSocket support
-│   ├── WebSocketHandler    - WebSocket endpoint handler
-│   ├── WSConnection        - WebSocket connection
-│   ├── WSUpgrader          - WebSocket upgrade handler
-│   └── WSFrame             - WebSocket frame parser
-├── protocol/           - Protocol detection
-│   ├── ProtocolDetector       - Protocol detection
-│   └── CustomProtocolHandler  - Custom protocol interface
-├── ssl/                - SSL/TLS support
-│   └── SSLConfig       - SSL configuration
-└── NovaServer          - Main server class
+├── NovaServer.java              # Main server class
+├── config
+│   └── NovaConfig.java          # Server configuration
+├── core
+│   └── ConnectionPool.java      # Connection management
+├── http
+│   ├── Cookie.java              # Cookie handling
+│   ├── HTTPMethod.java          # HTTP methods enum
+│   ├── HTTPParser.java          # Request parser
+│   ├── HTTPRequest.java         # Request object
+│   ├── HTTPResponse.java        # Response builder
+│   └── HTTPStatus.java          # Status codes
+├── plugin
+│   ├── BasePlugin.java          # Plugin base class
+│   ├── Plugin.java              # Plugin interface
+│   ├── PluginContext.java       # Plugin context
+│   ├── PluginException.java     # Plugin errors
+│   ├── PluginManager.java       # Plugin management
+│   ├── PluginPriority.java      # Execution priority
+│   └── PluginState.java         # Lifecycle states
+└── plugins
+    ├── MiddlewarePlugin.java    # Middleware support
+    ├── ProtocolDetectionPlugin.java  # Custom protocols
+    ├── RoutingPlugin.java       # HTTP routing
+    ├── SSLPlugin.java           # SSL/TLS support
+    ├── WebSocketPlugin.java     # WebSocket support
+    ├── routing
+    │   ├── RouteHandler.java    # Route handler interface
+    │   └── Router.java          # Route matcher
+    └── websocket
+        └── WebSocketConnection.java  # WebSocket client
 ```
-
-### Threading Model
-
-Nova uses a sophisticated threading model:
-
-1. **Acceptor Thread**: Single thread accepts incoming connections
-2. **Worker Pool**: Handles request processing
-   - Platform threads (Java 17+): Configurable pool size
-   - Virtual threads (Java 21+): Unlimited lightweight threads
-3. **WebSocket Threads**: Dedicated threads for WebSocket connections
-
-### Request Lifecycle
-
-1. **Connection Acceptance**: Server accepts TCP connection
-2. **Protocol Detection**: Identify HTTP, WebSocket, or custom protocol
-3. **Request Parsing**: Parse HTTP request into Request object
-4. **Middleware Chain**: Execute middleware pipeline
-5. **Route Matching**: Find matching route handler
-6. **Handler Execution**: Execute route handler
-7. **Response**: Send response to client
-8. **Connection Close**: Close or keep-alive
-
-## 🔧 Advanced Topics
-
-### Custom Protocol Handlers
-
-```java
-
-        // ========== EXAMPLE 1: Using byte array ==========
-        // Register "NOVA" protocol (0x4E 0x4F 0x56 0x41)
-        server.onCustomProtocol(new byte[]{0x4E, 0x4F, 0x56, 0x41}, socket -> {
-            System.out.println("NOVA protocol detected!");
-            
-            InputStream in = socket.getInputStream();
-            OutputStream out = socket.getOutputStream();
-
-            
-            // Read rest of the data
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-            String data = reader.readLine();
-            
-            System.out.println("Received: " + data);
-            
-            // Send response
-            out.write("NOVA OK\n".getBytes());
-            out.flush();
-            
-            socket.close();
-        });
-        
-        // ========== EXAMPLE 2: Using hex string ==========
-        // Register "CHAT" protocol (0x43 0x48 0x41 0x54)
-        server.onCustomProtocol("43484154", socket -> {
-            System.out.println("CHAT protocol detected!");
-            
-            InputStream in = socket.getInputStream();
-            OutputStream out = socket.getOutputStream();
-            
-            // Handle chat protocol
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-            String message = reader.readLine();
-            
-            System.out.println("Chat message: " + message);
-            
-            String response = "CHAT RECEIVED: " + message + "\n";
-            out.write(response.getBytes());
-            out.flush();
-            
-            socket.close();
-        });
-        
-        // ========== EXAMPLE 3: Binary protocol ==========
-        // Register custom binary protocol with magic bytes 0xDE 0xAD 0xBE 0xEF
-        server.onCustomProtocol(new byte[]{(byte)0xDE, (byte)0xAD, (byte)0xBE, (byte)0xEF}, socket -> {
-            System.out.println("Binary protocol detected!");
-            
-            DataInputStream in = new DataInputStream(socket.getInputStream());
-            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-            
-            try {
-                
-                // Read binary data
-                int length = in.readInt();
-                byte[] data = new byte[length];
-                in.readFully(data);
-                
-                System.out.println("Received " + length + " bytes");
-                
-                // Send acknowledgment
-                out.writeInt(0x00); // OK status
-                out.flush();
-                
-            } finally {
-                socket.close();
-            }
-        });
-        
-        // ========== EXAMPLE 4: Multiple protocols ==========
-        // Register "AUTH" protocol
-        server.onCustomProtocol("41555448", socket -> {
-            System.out.println("AUTH protocol detected!");
-            
-            InputStream in = socket.getInputStream();
-            OutputStream out = socket.getOutputStream();
-            
-            
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-            String credentials = reader.readLine();
-            
-            // Validate credentials
-            boolean isValid = validateCredentials(credentials);
-            
-            if (isValid) {
-                out.write("AUTH OK\n".getBytes());
-            } else {
-                out.write("AUTH FAILED\n".getBytes());
-            }
-            out.flush();
-            
-            socket.close();
-        });
-        
-```
-
-### Virtual Threads (Java 21+)
-
-```java
-// Enable virtual threads for massive concurrency
-ServerConfig config = ServerConfig.builder()
-    .port(8080)
-    .useVirtualThreads(true)  // Automatically detects Java 21+
-    .build();
-
-NovaServer server = new NovaServer(config);
-// Can now handle 100,000+ concurrent connections efficiently
-```
-
-### Connection Pool Management
-
-```java
-// Connection pool is managed automatically
-// Access pool info through metrics
-Map<String, Object> metrics = server.getMetrics();
-int active = (int) metrics.get("activeConnections");
-int max = (int) metrics.get("maxConnections");
-double utilization = (double) metrics.get("poolUtilization");
-```
-
-### Performance Tuning
-
-```java
-ServerConfig config = ServerConfig.builder()
-    .port(8080)
-    .maxConnections(50000)           // Increase for high traffic
-    .maxRequestSize(50 * 1024 * 1024) // 50MB for large uploads
-    .socketTimeout(60000)             // 60s for long-polling
-    .workerThreads(32)                // Match CPU cores for best performance
-    .useVirtualThreads(true)          // Best for I/O-bound workloads
-    .compression(true)                // Reduce bandwidth
-    .build();
-```
-
-## 📊 Performance
-
-### Benchmarks
-
-Tested on: Intel Core i7, 16GB RAM, Java 21
-
-| Scenario | Throughput | Latency (p99) |
-|----------|-----------|---------------|
-| Simple JSON response | 45,000 req/s | 2ms |
-| WebSocket messages | 100,000 msg/s | 1ms |
-| File serving (1MB) | 5,000 req/s | 15ms |
-| Virtual threads (10k connections) | 40,000 req/s | 3ms |
-
-### Best Practices
-
-1. **Use Virtual Threads** for I/O-bound workloads (Java 21+)
-2. **Enable Compression** for large JSON responses
-3. **Implement Connection Pooling** for database connections
-4. **Use Middleware** for common tasks (auth, logging, etc.)
-5. **Set Appropriate Timeouts** to prevent resource exhaustion
-6. **Monitor Metrics** regularly for performance insights
-7. **Enable SSL** for production environments
-8. **Implement Rate Limiting** to prevent abuse
-
-## 🛠️ Development
-
-### Building from Source
-
-```bash
-git clone https://github.com/your-org/nova-framework.git
-cd nova-framework
-mvn clean install
-```
-
-### Running Tests
-
-```bash
-mvn test
-```
-
-### Running Examples
-
-```bash
-mvn exec:java -Dexec.mainClass="com.nova.examples.NovaExample"
-```
-
-## 📝 Examples
-
-Check out the `examples/` directory for complete working examples:
-
-- **Basic Server**: Simple REST API
-- **WebSocket Chat**: Real-time chat application
-- **File Upload**: Handling file uploads
-- **Authentication**: JWT-based auth
-- **Rate Limiting**: Advanced rate limiting
-- **Microservice**: Complete microservice example
-- **HTTPS Server**: SSL/TLS configuration
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Here's how you can help:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. **Report Bugs** - Open an issue with details
+2. **Suggest Features** - Describe your use case
+3. **Submit PRs** - Follow the existing code style
+4. **Write Plugins** - Extend NovaServer with new capabilities
 
-### Code Style
+### Plugin Development Guidelines
 
-- Follow Java naming conventions
-- Write unit tests for new features
-- Document public APIs with Javadoc
-- Keep methods focused and concise
-- Use meaningful variable names
+1. Extend `BasePlugin` for convenience
+2. Use descriptive plugin IDs
+3. Declare dependencies explicitly
+4. Handle errors gracefully
+5. Add logging for debugging
+6. Document your plugin
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is open source. See LICENSE file for details.
 
 ## 🙏 Acknowledgments
 
-- Inspired by Express.js, Koa.js, and Spring Boot
-- Built with modern Java features (Records, Virtual Threads, Pattern Matching)
-- Thanks to all contributors and users
+Built with inspiration from:
+- Express.js (Node.js)
+- Javalin (Java)
+- Netty (Java)
 
 ## 📞 Support
 
-- **Documentation**: [https://nova-framework.dev/docs](https://nova-framework.dev/docs)
-- **Issues**: [GitHub Issues](https://github.com/your-org/nova-framework/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/nova-framework/discussions)
-- **Email**: support@nova-framework.dev
+- **Issues**: GitHub Issues
+- **Documentation**: This README
+- **Examples**: `/examples` directory
 
 ## 🗺️ Roadmap
 
-### Version 2.2.0 (Planned)
+### Version 3.1 (Planned)
 - [ ] HTTP/2 support
-- [ ] Server-Sent Events (SSE)
-- [ ] Built-in template engine
-- [ ] Static file caching
-- [ ] Hot reload improvements
+- [ ] Request/response compression
+- [ ] Rate limiting plugin
+- [ ] Session management plugin
+- [ ] Built-in JSON library integration
 
-### Version 2.3.0 (Planned)
-- [ ] Metrics dashboard
+### Version 3.2 (Future)
 - [ ] GraphQL support
-- [ ] Built-in authentication providers
-- [ ] Database connection pooling
-- [ ] Distributed tracing
+- [ ] gRPC support
+- [ ] Metrics and monitoring plugin
+- [ ] Admin dashboard
+- [ ] Hot reload during development
 
-### Version 3.0.0 (Future)
-- [ ] HTTP/3 support
-- [ ] Native image support (GraalVM)
-- [ ] Clustering support
-- [ ] Built-in API documentation
-- [ ] WebAssembly integration
+## 📊 Status
+
+- ✅ Core server - **Stable**
+- ✅ Routing plugin - **Stable**
+- ✅ Middleware plugin - **Stable**
+- ✅ WebSocket plugin - **Stable**
+- ⚠️ SSL plugin - **Beta**
+- ⚠️ Protocol detection - **Beta**
 
 ---
 
-**Made with ❤️ by the Nova Team**
+**Made with ❤️ by the NovaServer team**
 
-**Star ⭐ this repository if you find it helpful!**
+*Start building modern Java web applications today!*
