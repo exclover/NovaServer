@@ -109,11 +109,18 @@ public record HTTPRequest(
         return method;
     }
 
+    public String getPath() {
+        return path;
+    }
+    
+    public String getBody() {
+        return body;
+    }
+
     public String getClientIP() {
         return clientAddress;
     }
     
-
     /**
      * Check if this is a WebSocket upgrade request
      */
