@@ -22,6 +22,7 @@ public final class HTTPResponse {
         }
         this.outputStream = outputStream;
         // Default headers
+        setHeader("Content-Type", "text/plain; charset=utf-8");
         setHeader("Server", "NovaServer/3.0");
         setHeader("Connection", "close");
     }
@@ -122,37 +123,43 @@ public final class HTTPResponse {
     }
 
     /**
-     * Send plain text response
-     */
-    public void send(String content) throws IOException {
-        send(content, "text/plain; charset=utf-8");
-    }
-
-    /**
      * Send HTML response
      */
     public void html(String html) throws IOException {
-        send(html, "text/html; charset=utf-8");
+        setHeader("Content-Type", "text/html; charset=utf-8");
+        send(html);
     }
 
     /**
      * Send JSON response
      */
     public void json(String json) throws IOException {
-        send(json, "application/json; charset=utf-8");
+        setHeader("Content-Type", "application/json; charset=utf-8");
+        send(json);
     }
+
+
 
     /**
      * Send response with custom content type
      */
-    public void send(String content, String contentType) throws IOException {
+    public void send(String content) throws IOException {
         if (sent) {
             throw new IllegalStateException("Response already sent");
         }
 
         byte[] bodyBytes = content != null ? content.getBytes(StandardCharsets.UTF_8) : new byte[0];
+        send(bodyBytes);
+    }
+    
+    /**
+     * Send response with custom content type
+     */
+    public void send(byte[] bodyBytes) throws IOException {
+        if (sent) {
+            throw new IllegalStateException("Response already sent");
+        }
 
-        setHeader("Content-Type", contentType);
         setHeader("Content-Length", String.valueOf(bodyBytes.length));
 
         writeHeaders();
