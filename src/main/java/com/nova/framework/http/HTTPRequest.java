@@ -109,6 +109,11 @@ public record HTTPRequest(
         return method;
     }
 
+    public String getClientIP() {
+        return clientAddress;
+    }
+    
+
     /**
      * Check if this is a WebSocket upgrade request
      */
