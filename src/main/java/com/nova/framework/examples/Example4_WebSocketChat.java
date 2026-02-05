@@ -34,42 +34,42 @@ public class Example4_WebSocketChat {
             // WebSocket chat endpoint
             ws.websocket("/chat", client -> {
                 // Store the connection
-                clients.put(client.getId(), client);
-                System.out.println("✅ Client connected: " + client.getId() + 
+                clients.put(client.getID(), client);
+                System.out.println("✅ Client connected: " + client.getID() + 
                                    " (Total: " + clients.size() + ")");
 
                 // Broadcast join message to all clients
                 String joinMsg = createMessage("System", 
-                    client.getId() + " joined the chat", "system");
+                    client.getID() + " joined the chat", "system");
                 broadcast(joinMsg, null);
 
                 // Handle incoming messages
                 client.onMessage(message -> {
-                    System.out.println("📨 Message from " + client.getId() + ": " + message);
+                    System.out.println("📨 Message from " + client.getID() + ": " + message);
 
                     // Create formatted message
-                    String chatMsg = createMessage(client.getId(), message, "user");
+                    String chatMsg = createMessage(client.getID(), message, "user");
 
                     // Broadcast to all clients except sender
-                    broadcast(chatMsg, client.getId());
+                    broadcast(chatMsg, client.getID());
                 });
 
                 // Handle client disconnect
                 client.onClose(reason -> {
-                    clients.remove(client.getId());
-                    System.out.println("❌ Client disconnected: " + client.getId() + 
+                    clients.remove(client.getID());
+                    System.out.println("❌ Client disconnected: " + client.getID() + 
                                        " (Total: " + clients.size() + ")");
 
                     // Broadcast leave message
                     String leaveMsg = createMessage("System", 
-                        client.getId() + " left the chat", "system");
+                        client.getID() + " left the chat", "system");
                     broadcast(leaveMsg, null);
                 });
 
                 // Send welcome message to the new client
                 try {
                     String welcome = createMessage("System", 
-                        "Welcome to the chat! You are " + client.getId(), "system");
+                        "Welcome to the chat! You are " + client.getID(), "system");
                     client.send(welcome);
 
                     // Send current user count

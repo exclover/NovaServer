@@ -30,8 +30,12 @@ public final class WebSocketConnection {
         this.id = id;
     }
 
-    public String getId() {
+    public String getID() {
         return id;
+    }
+
+    public String getClientIP() {
+        return socket.getInetAddress().getHostAddress();
     }
 
     public void onMessage(Consumer<String> handler) {
