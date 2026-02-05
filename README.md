@@ -1,4 +1,4 @@
-# 🚀 NovaServer v3.0
+# 🚀 NovaServer v3.1
 
 **A modern, lightweight, plugin-based HTTP server framework for Java**
 
