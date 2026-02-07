@@ -117,6 +117,9 @@ public final class WebSocketPlugin extends BasePlugin {
             output.write(response.getBytes(StandardCharsets.UTF_8));
             output.flush();
 
+            socket.setKeepAlive(true);
+            socket.setSoTimeout(0);
+
             // Create WebSocket connection
             String id = "ws-" + connectionId.incrementAndGet();
             WebSocketConnection wsConnection = new WebSocketConnection(socket, id);
@@ -168,6 +171,5 @@ public final class WebSocketPlugin extends BasePlugin {
         return handlers.containsKey(path);
     }
 
-    private record WSHandler(Consumer<WebSocketConnection> configure) {
-    }
+    private record WSHandler(Consumer<WebSocketConnection> configure) { }
 }
