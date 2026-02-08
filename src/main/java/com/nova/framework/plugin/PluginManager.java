@@ -62,9 +62,6 @@ public final class PluginManager {
         // Initialize in dependency order
         for (Plugin plugin : ordered) {
             initializePlugin(plugin, context);
-            if (!initializationOrder.contains(plugin)) {
-                initializationOrder.add(plugin);
-            }
         }
     }
 
@@ -178,6 +175,11 @@ public final class PluginManager {
         try {
             plugin.initialize(context);
             plugin.setState(PluginState.INITIALIZED);
+            
+            // Add to initialization order if not already present
+            if (!initializationOrder.contains(plugin)) {
+                initializationOrder.add(plugin);
+            }
         } catch (Exception e) {
             plugin.setState(PluginState.FAILED);
             throw new PluginException.InitializationException(plugin.id(), e.getMessage(), e);
