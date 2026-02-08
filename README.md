@@ -1,8 +1,8 @@
-# 🚀 NovaServer v3.3
+# 🚀 NovaServer v3.4
 
 **Modern, Plugin-Based Java HTTP Server Framework**
 
-NovaServer v3.0 is a lightweight, extensible HTTP server framework built with a plugin-based architecture. It supports HTTP/1.1, WebSockets, custom protocols, middleware, routing, and more - all while maintaining a minimal core.
+NovaServer v3.4 is a lightweight, extensible HTTP server framework built with a plugin-based architecture. It supports HTTP/1.1, WebSockets, custom protocols, middleware, routing, and more - all while maintaining a minimal core.
 
 [![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://www.oracle.com/java/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
