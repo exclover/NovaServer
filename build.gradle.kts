@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.github.exclover"
-version = "3.3-SNAPSHOT"
+version = "3.5-SNAPSHOT"
 
 java {
     toolchain {
